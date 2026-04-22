@@ -961,3 +961,171 @@ function guardarComentarioAlumno(matriculaProf, correoAlumno, comentario) {
 function _sanitizarClave(str) {
   return str.replace(/[.#$\[\]\/]/g, "_");
 }
+
+// ================================================================
+// 15. PANEL ADMINISTRATIVO - AUTENTICACIÓN Y DATOS
+// ================================================================
+
+/**
+ * Valida contraseña admin
+ */
+function validarAdminPassword(password) {
+  if (password === "IBIME2026&") {
+    return { ok: true };
+  }
+  return { ok: false, error: "Contraseña incorrecta" };
+}
+
+/**
+ * Obtiene datos del panel admin desde Firebase
+ */
+function obtenerDatosAdmin() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 1. TABLERO DE AVANCE
+    var tablero = _leerTableroAvance(ss);
+    
+    // 2. BITÁCORA DE TIEMPOS
+    var bitacora = _leerBitacora(ss);
+    
+    // 3. DASHBOARD ENTREGAS
+    var dashboard = _leerDashboardEntregas(ss);
+    
+    return {
+      ok: true,
+      tablero: tablero,
+      bitacora: bitacora,
+      dashboard: dashboard
+    };
+  } catch (e) {
+    return { ok: false, error: e.toString() };
+  }
+}
+
+/**
+ * Lee datos del Tablero de Avance
+ */
+function _leerTableroAvance(ss) {
+  var hoja = ss.getSheetByName(HOJAS.TABLERO);
+  if (!hoja) return [];
+  
+  var data = hoja.getDataRange().getValues();
+  var resultado = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var profesor = String(data[i][0]).trim();
+    if (!profesor) continue;
+    
+    for (var c = 1; c < data[0].length; c++) {
+      var grupo = String(data[0][c]).trim();
+      var materias = String(data[i][c]).trim();
+      
+      if (grupo && materias) {
+        resultado.push({
+          profesor: profesor,
+          grupo: grupo,
+          materias: materias
+        });
+      }
+    }
+  }
+  
+  return resultado;
+}
+
+/**
+ * Lee datos de la Bitácora
+ */
+function _leerBitacora(ss) {
+  var hoja = ss.getSheetByName(HOJAS.BITACORA);
+  if (!hoja) return [];
+  
+  var data = hoja.getDataRange().getValues();
+  var resultado = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var profesor = String(data[i][1]).trim();
+    var grupos = String(data[i][2]).trim();
+    var materias = String(data[i][3]).trim();
+    var filas = data[i][4];
+    var segundos = parseFloat(data[i][5]).toFixed(2);
+    
+    if (profesor) {
+      resultado.push({
+        profesor: profesor,
+        grupos: grupos,
+        materias: materias,
+        filas: filas,
+        segundos: segundos
+      });
+    }
+  }
+  
+  return resultado;
+}
+
+/**
+ * Lee datos del Dashboard de Entregas
+ */
+function _leerDashboardEntregas(ss) {
+  var hoja = ss.getSheetByName(HOJAS.DASHBOARD);
+  if (!hoja) return [];
+  
+  var data = hoja.getDataRange().getValues();
+  var resultado = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var estatus = String(data[i][0]).trim();
+    var docente = String(data[i][1]).trim();
+    var entregas = String(data[i][2]).trim();
+    var porcentaje = data[i][3];
+    
+    if (docente) {
+      resultado.push({
+        estatus: estatus,
+        docente: docente,
+        entregas: entregas,
+        porcentaje: porcentaje,
+        total: entregas.split(" de ")[1] || "?"
+      });
+    }
+  }
+  
+  return resultado;
+}
+
+/**
+ * Guardar datos en Firebase (modificado para usar Firebase en lugar de Sheets)
+ */
+function _guardarEnFirebaseAdmin(tipo, datos) {
+  var config = _getFirebaseConfig();
+  if (!config.url || !config.secret) {
+    return { ok: false, error: "Firebase no configurado" };
+  }
+  
+  var path = "/admin/" + tipo;
+  var payload = {};
+  
+  try {
+    payload = datos;
+    
+    var resp = UrlFetchApp.fetch(
+      config.url + path + ".json?auth=" + config.secret,
+      {
+        method: "PUT",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      }
+    );
+    
+    if (resp.getResponseCode() === 200) {
+      return { ok: true };
+    } else {
+      return { ok: false, error: "Error guardando en Firebase" };
+    }
+  } catch (e) {
+    return { ok: false, error: e.toString() };
+  }
+}
