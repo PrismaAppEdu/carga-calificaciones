@@ -964,17 +964,41 @@
       </div>
     </div>
   </div>
+   <!-- ══════════════════════════════════════════════════════════════ -->
+   <!-- PANTALLA 4: REPORTE DEL PROFESOR -->
+   <!-- ══════════════════════════════════════════════════════════════ -->
+   <div id="screenReporte" class="screen">
+     <div class="reporte-header">
+       <h2 id="reporteProfesor">Reporte - Prof. Nombre</h2>
+       <div class="prof-info">Alumnos ordenados por estado académico</div>
+     </div>
 
-  <!-- ═════════════════════════════════════════════════════════════════ -->
-  <!-- PANTALLA 4: REPORTE DEL PROFESOR -->
-  <!-- ═════════════════════════════════════════════════════════════════ -->
-  <div id="screenReporte" class="screen">
-    <div class="reporte-header">
-      <h2 id="reporteProfesor">Reporte - Prof. Nombre</h2>
-      <div class="prof-info">Alumnos ordenados por estado académico</div>
-    </div>
+     <div class="reporte-body">
+       <!-- Sección izquierda: Alumnos -->
+       <div class="reporte-section">
+         <h3>👥 Alumnos Cargados</h3>
+         <div id="listadoAlumnos">
+           <p class="empty-hint">Cargando alumnos...</p>
+         </div>
+       </div>
 
-       <!-- ══════════════════════════════════════════════════════════════ -->
+       <!-- Sección derecha: Grupos -->
+       <div class="reporte-section">
+         <h3>📋 Resumen de Grupos</h3>
+         <div id="listadoGrupos">
+           <p class="empty-hint">Cargando grupos...</p>
+         </div>
+       </div>
+     </div>
+
+     <div class="reporte-footer">
+       <button class="main-action btn-back" style="padding:10px; font-size:0.9rem;" onclick="volverAlMenu()">
+         ← Volver al Menú
+       </button>
+     </div>
+   </div>
+
+   <!-- ══════════════════════════════════════════════════════════════ -->
    <!-- PANTALLA 5: PANEL ADMINISTRATIVO -->
    <!-- ══════════════════════════════════════════════════════════════ -->
    <div id="screenPanelAdmin" class="screen">
@@ -1026,497 +1050,238 @@
        </button>
      </div>
    </div>
-    
-    <div class="reporte-body">
-      <!-- Sección izquierda: Alumnos -->
-      <div class="reporte-section">
-        <h3>👥 Alumnos Cargados</h3>
-        <div id="listadoAlumnos">
-          <p class="empty-hint">Cargando alumnos...</p>
-        </div>
-      </div>
 
-      <!-- Sección derecha: Grupos -->
-      <div class="reporte-section">
-        <h3>📋 Resumen de Grupos</h3>
-        <div id="listadoGrupos">
-          <p class="empty-hint">Cargando grupos...</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="reporte-footer">
-      <button class="main-action btn-back" style="padding:10px; font-size:0.9rem;" onclick="volverAlMenu()">
-        ← Volver al Menú
-      </button>
-    </div>
-  </div>
-
-</div>
-
-<!-- Modal para comentarios -->
-<div id="modalComentario" class="modal">
-  <div class="modal-content">
-    <h3>Comentario sobre <span id="alumnoComentarioNombre"></span></h3>
-    <textarea id="textComentario" placeholder="Escribe tu comentario aquí (máx 500 caracteres)..."></textarea>
-    <div class="modal-buttons">
-      <button class="btn-guardar" onclick="guardarComentarioModal()">Guardar</button>
-      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
-    </div>
-  </div>
 </div>
 
 <script>
-  // ── Imagen de fondo ──────────────────────────────────────────────
-  google.script.run.withSuccessHandler(function(url) {
-    document.body.style.backgroundImage = "url('" + url + "')";
-  }).getImageUrl();
-
-  // ── Estado Global ─────────────────────────────────────────────────
-  var estadoGlobal = {
-    pantalaActual: "menu",
-    profesorLogin: null,
-    alumnoComentarioActual: null,
-    tipoGrupo: "Español",
-    gruposContainer: document.getElementById('gruposContainer'),
-    msgArea: document.getElementById('msgArea'),
-    MAX_GRUPOS: 28
-  };
-
-  // ════════════════════════════════════════════════════════════════════
-  // NAVEGACIÓN ENTRE PANTALLAS
-  // ════════════════════════════════════════════════════════════════════
-
-  function mostrarPantalla(pantalla) {
-    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
-    document.getElementById('screen' + pantalla).classList.add('active');
-    estadoGlobal.pantalaActual = pantalla;
-  }
-
-  function irACargar() {
-    mostrarPantalla('Cargar');
-  }
-
-  function irAConsultarLogin() {
-    mostrarPantalla('ConsultarLogin');
-    document.getElementById('loginMatricula').focus();
-  }
-
-  function volverAlMenu() {
-    mostrarPantalla('Menu');
-    limpiarFormularios();
-  }
-
-  function limpiarFormularios() {
-    document.getElementById('matricula').value = '';
-    document.getElementById('profesor').value = '';
-    document.getElementById('tipoGrupo').value = '';
-    document.getElementById('loginMatricula').value = '';
-    document.getElementById('loginCorreo').value = '';
-    document.getElementById('loginMsg').innerHTML = '';
-    estadoGlobal.gruposContainer.innerHTML = '<p class="empty-hint">Ingresa tu matrícula para cargar los grupos asignados.</p>';
-  }
-
-  // ════════════════════════════════════════════════════════════════════
-  // VALIDACIÓN DE LOGIN
-  // ════════════════════════════════════════════════════════════════════
-
-  function validarLoginProfe() {
-    var matricula = document.getElementById('loginMatricula').value.trim();
-    var correo = document.getElementById('loginCorreo').value.trim();
-    var msgDiv = document.getElementById('loginMsg');
-
-    if (!matricula || !correo) {
-      msgDiv.innerHTML = '<div class="msg-error">⚠️ Completa ambos campos</div>';
-      return;
-    }
-
-    msgDiv.innerHTML = '<div class="msg-success">⏳ Validando...</div>';
-
-    google.script.run.withSuccessHandler(function(res) {
-      if (res.ok) {
-        estadoGlobal.profesorLogin = res;
-        cargarReporteProfesor(matricula);
-      } else {
-        msgDiv.innerHTML = '<div class="msg-error">❌ ' + res.error + '</div>';
-      }
-    }).validarLoginProfesor(matricula, correo);
-  }
-
-  // ════════════════════════════════════════════════════════════════════
-  // CARGAR REPORTE DEL PROFESOR
-  // ════════════════════════════════════════════════════════════════════
-
-  function cargarReporteProfesor(matricula) {
-    google.script.run.withSuccessHandler(function(res) {
-      if (!res.ok) {
-        alert('Error: ' + res.error);
-        volverAlMenu();
-        return;
-      }
-
-      // Actualizar encabezado
-      document.getElementById('reporteProfesor').textContent = 'Reporte - ' + estadoGlobal.profesorLogin.nombre;
-
-      // Llenar lista de alumnos
-      var listadoDiv = document.getElementById('listadoAlumnos');
-      if (res.alumnos.length === 0) {
-        listadoDiv.innerHTML = '<p class="empty-hint">No hay alumnos cargados aún.</p>';
-      } else {
-        listadoDiv.innerHTML = '';
-        res.alumnos.forEach(function(al) {
-          var estado = obtenerEstadoUI(al.estado.texto);
-          var html = 
-            '<div class="alumno-card ' + estado.clase + '">' +
-            '  <div class="alumno-nombre">' + al.estado.emoji + ' ' + al.nombre + '</div>' +
-            '  <div class="alumno-info">' +
-            '    Grupo: <strong>' + al.grupo + '</strong> | ' +
-            '    Promedio: <strong>' + al.promedio.toFixed(2) + '/10</strong>' +
-            '  </div>' +
-            '  <div class="alumno-estado" style="background:' + al.estado.color + '; color:white;">' +
-            '    ' + al.estado.texto +
-            '  </div>' +
-            '  <div style="margin-top:10px; font-size:0.8rem;">' +
-            '    <button onclick="abrirModalComentario(\'' + al.correo + '\', \'' + al.nombre.replace(/'/g, "\\'") + '\')" ' +
-            '            style="background:#f0f0f0; border:1px solid #ddd; padding:5px 10px; border-radius:5px; cursor:pointer;">' +
-            '      💬 Comentario' +
-            '    </button>' +
-            '  </div>' +
-            '</div>';
-          listadoDiv.innerHTML += html;
-        });
-      }
-
-      // Llenar resumen de grupos
-      var gruposDiv = document.getElementById('listadoGrupos');
-      if (res.gruposResumen.length === 0) {
-        gruposDiv.innerHTML = '<p class="empty-hint">No hay grupos cargados.</p>';
-      } else {
-        gruposDiv.innerHTML = '';
-        res.gruposResumen.forEach(function(grp) {
-          var html =
-            '<div class="grupo-item">' +
-            '  <div class="grupo-item-title">' + grp.grupo + ' ' + grp.status + '</div>' +
-            '  <div class="grupo-item-mats">' +
-            '    Materias: ' + grp.materias.join(', ') +
-            '  </div>' +
-            '</div>';
-          gruposDiv.innerHTML += html;
-        });
-      }
-
-      mostrarPantalla('Reporte');
-
-    }).obtenerReporteProfesor(matricula);
-  }
-
-  function obtenerEstadoUI(texto) {
-    var map = {
-      "Excelente": { clase: "excelente", icon: "😎" },
-      "Satisfactorio": { clase: "satisfactorio", icon: "🙂" },
-      "En Riesgo": { clase: "riesgo", icon: "⚠️" },
-      "Crítico": { clase: "critico", icon: "😓" }
-    };
-    return map[texto] || { clase: "", icon: "?" };
-  }
-
-  // ════════════════════════════════════════════════════════════════════
-  // MODAL DE COMENTARIOS
-  // ════════════════════════════════════════════════════════════════════
-
-  function abrirModalComentario(correo, nombre) {
-    estadoGlobal.alumnoComentarioActual = { correo: correo, nombre: nombre };
-    document.getElementById('alumnoComentarioNombre').textContent = nombre;
-    document.getElementById('textComentario').value = '';
-    document.getElementById('modalComentario').classList.add('active');
-  }
-
-  function cerrarModal() {
-    document.getElementById('modalComentario').classList.remove('active');
-    estadoGlobal.alumnoComentarioActual = null;
-  }
-
-  function guardarComentarioModal() {
-    var comentario = document.getElementById('textComentario').value.trim();
-    if (!comentario) {
-      alert('Escribe un comentario primero');
-      return;
-    }
-
-    var btn = event.target;
-    btn.disabled = true;
-    btn.textContent = '⏳ Guardando...';
-
-    google.script.run.withSuccessHandler(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'Guardar';
-
-      if (res.ok) {
-        alert('✅ ' + res.mensaje);
-        cerrarModal();
-      } else {
-        alert('❌ ' + res.error);
-      }
-    }).guardarComentarioAlumno(
-      estadoGlobal.profesorLogin.matricula,
-      estadoGlobal.alumnoComentarioActual.correo,
-      comentario
-    );
-  }
-
-  // ═══════���════════════════════════════════════════════════════════════
-  // RESTO DEL CÓDIGO (búsqueda profesor, importar, etc - IGUAL AL ANTERIOR)
-  // ════════════════════════════════════════════════════════════════════
-
-  var tipoSelect = document.getElementById('tipoGrupo');
-
-  function showMsg(msg, tipo) {
-    estadoGlobal.msgArea.innerHTML = '<div class="msg-' + (tipo === 'error' ? 'error' : 'success') + '">' + msg + '</div>';
-  }
-
-  function clearGrupos() {
-    estadoGlobal.gruposContainer.innerHTML = '<p class="empty-hint">Ingresa tu matrícula para cargar los grupos asignados.</p>';
-  }
-
-  function grupoCount() {
-    return estadoGlobal.gruposContainer.querySelectorAll('.grupo-line').length;
-  }
-
-  function buscarProfesor() {
-    var mat = document.getElementById('matricula').value.trim();
-    if (!mat) { document.getElementById('profesor').value = ''; return; }
-
-    document.getElementById('profesor').value = 'Buscando carga académica…';
-    clearGrupos();
-
-    google.script.run.withSuccessHandler(function(res) {
-      if (!res.ok) {
-        document.getElementById('profesor').value = '';
-        document.getElementById('profesor').placeholder = res.error;
-        return;
-      }
-
-      document.getElementById('profesor').value = res.nombre;
-      if (res.tipoPredominante) tipoSelect.value = res.tipoPredominante;
-
-      if (res.aviso) showMsg(res.aviso, 'error');
-
-      if (res.carga && res.carga.length > 0) {
-        estadoGlobal.gruposContainer.innerHTML = '';
-        res.carga.forEach(function(item) {
-          agregarGrupo({ grupo: item.grupo, asignatura: item.materia, esAutomatico: true });
-        });
-        showMsg('✅ Se cargaron ' + res.carga.length + ' grupos asignados.', 'success');
-      } else {
-        estadoGlobal.gruposContainer.innerHTML = '';
-        showMsg('⚠️ Sin materias asignadas en la Matriz. Agrégalas manualmente.', 'error');
-        agregarGrupo({ esAutomatico: false });
-      }
-    }).obtenerCargaPorMatricula(mat);
-  }
-
-  document.getElementById('matricula').addEventListener('change', buscarProfesor);
-
-  function actualizarSelectsManuales() {
-    var tipo = tipoSelect.value;
-    if (!tipo) return;
-
-    document.querySelectorAll('.grupo-line').forEach(function(div) {
-      var sg = div.querySelector('select.grupo');
-      var sa = div.querySelector('select.asignatura');
-      if (!sg || !sa) return;
-
-      google.script.run.withSuccessHandler(function(grupos) {
-        var val = sg.value;
-        sg.innerHTML = '<option value="">Grupo…</option>';
-        grupos.forEach(function(g) {
-          var o = document.createElement('option');
-          o.value = o.textContent = g;
-          sg.appendChild(o);
-        });
-        if (val) sg.value = val;
-      }).obtenerGrupos(tipo);
-
-      google.script.run.withSuccessHandler(function(mats) {
-        var val = sa.value;
-        sa.innerHTML = '<option value="">Asignatura…</option>';
-        mats.forEach(function(m) {
-          var o = document.createElement('option');
-          o.value = o.textContent = m;
-          sa.appendChild(o);
-        });
-        if (val) sa.value = val;
-      }).obtenerAsignaturas(tipo);
-    });
-  }
-
-  tipoSelect.addEventListener('change', actualizarSelectsManuales);
-
-  function validarDuplicados() {
-    var links = [];
-    var hasDup = false;
-    document.querySelectorAll('.grupo-line').forEach(function(div) {
-      var li  = div.querySelector('.link');
-      var sp  = div.querySelector('.status');
-      var val = li.value.trim();
-
-      if (sp.textContent === '⚠️ Duplicado') { sp.textContent = ''; li.style.borderColor = '#ccc'; }
-
-      if (val) {
-        if (links.includes(val)) {
-          sp.textContent = '⚠️ Duplicado';
-          sp.style.color = 'var(--danger)';
-          li.style.borderColor = 'var(--danger)';
-          hasDup = true;
-        } else {
-          links.push(val);
-        }
-      }
-    });
-    return hasDup;
-  }
-
-  function agregarGrupo(datos) {
-    datos = datos || {};
-
-    if (grupoCount() >= estadoGlobal.MAX_GRUPOS) {
-      alert('Límite de ' + estadoGlobal.MAX_GRUPOS + ' grupos alcanzado.');
-      return;
-    }
-
-    var hint = estadoGlobal.gruposContainer.querySelector('.empty-hint');
-    if (hint) hint.remove();
-
-    var div = document.createElement('div');
-    div.className = 'grupo-line';
-
-    var htmlGrupo, htmlMat;
-    if (datos.esAutomatico) {
-      htmlGrupo = '<input type="text" class="grupo" value="' + datos.grupo + '" readonly title="' + datos.grupo + '">';
-      htmlMat   = '<input type="text" class="asignatura" value="' + datos.asignatura + '" readonly title="' + datos.asignatura + '">';
-    } else {
-      htmlGrupo = '<select class="grupo"><option value="">Grupo…</option></select>';
-      htmlMat   = '<select class="asignatura"><option value="">Asignatura…</option></select>';
-    }
-
-    div.innerHTML =
-      htmlGrupo + htmlMat +
-      '<input type="text" class="link" placeholder="Pegar link del Sheet">' +
-      '<span class="status"></span>' +
-      '<div class="remove-btn" title="Eliminar fila">✕</div>';
-
-    estadoGlobal.gruposContainer.appendChild(div);
-    div.scrollIntoView({ behavior: 'smooth', block: 'end' });
-
-    div.querySelector('.remove-btn').addEventListener('click', function() {
-      div.style.opacity = '0';
-      div.style.transition = 'opacity 0.2s';
-      setTimeout(function() { div.remove(); validarDuplicados(); }, 200);
-    });
-
-    var linkInput = div.querySelector('.link');
-    linkInput.addEventListener('blur', function() {
-      var link   = linkInput.value.trim();
-      var status = div.querySelector('.status');
-
-      if (!link) { status.textContent = ''; linkInput.style.borderColor = '#ccc'; return; }
-
-      status.textContent = '🔍';
-      google.script.run.withSuccessHandler(function(res) {
-        if (res.ok) {
-          status.textContent = '✅';
-          status.title       = res.nombreHoja;
-          linkInput.style.borderColor = 'var(--accent)';
-        } else {
-          status.textContent = '❌';
-          status.title       = res.error;
-          linkInput.style.borderColor = 'var(--danger)';
-        }
-        validarDuplicados();
-      }).validarLink(link);
-    });
-
-    if (!datos.esAutomatico && tipoSelect.value) {
-      setTimeout(actualizarSelectsManuales, 100);
-    }
-  }
-
-  document.getElementById('addGrupo').addEventListener('click', function() {
-    agregarGrupo({ esAutomatico: false });
-  });
-
-  document.getElementById('importar').addEventListener('click', function() {
-    if (validarDuplicados()) {
-      showMsg('Corrige los links duplicados antes de importar.', 'error');
-      return;
-    }
-
-    var profesor = document.getElementById('profesor').value.trim();
-    if (!profesor || profesor.startsWith('Buscando')) {
-      showMsg('Falta identificar al profesor. Revisa la matrícula.', 'error');
-      return;
-    }
-
-    var tipoGrupo = tipoSelect.value;
-    if (!tipoGrupo) {
-      showMsg('Selecciona si es Español o Inglés.', 'error');
-      return;
-    }
-
-    var gruposLinks = [];
-    document.querySelectorAll('.grupo-line').forEach(function(div) {
-      var grupo      = div.querySelector('.grupo').value.trim();
-      var asignatura = div.querySelector('.asignatura').value.trim();
-      var link       = div.querySelector('.link').value.trim();
-      if (grupo && asignatura && link) gruposLinks.push({ grupo: grupo, asignatura: asignatura, link: link });
-    });
-
-    if (gruposLinks.length === 0) {
-      showMsg('No hay grupos completos para importar.', 'error');
-      return;
-    }
-
-    var btn          = document.getElementById('importar');
-    var originalHTML = btn.innerHTML;
-    btn.disabled     = true;
-    btn.innerHTML    = '⏳ PROCESANDO…';
-    estadoGlobal.msgArea.innerHTML = '';
-
-    google.script.run
-      .withSuccessHandler(function(res) {
-        estadoGlobal.msgArea.innerHTML =
-          '<div class="msg-success"><b>' + res.mensajeFinal + '</b></div>' +
-          '<div style="font-size:0.8rem;margin-top:5px;color:#555;">' +
-          res.resumen.replace(/\n/g, '<br>') + '</div>';
-        btn.disabled  = false;
-        btn.innerHTML = originalHTML;
-      })
-      .withFailureHandler(function(err) {
-        showMsg('Error de conexión: ' + err.message, 'error');
-        btn.disabled  = false;
-        btn.innerHTML = originalHTML;
-      })
-      .importarGruposWeb({ profesor: profesor, gruposLinks: gruposLinks, tipoGrupo: tipoGrupo });
-  });
-
-  document.getElementById('nuevoPanel').addEventListener('click', function() {
-    if (confirm('¿Borrar formulario y empezar de cero?')) {
-      document.getElementById('matricula').value = '';
-      document.getElementById('profesor').value  = '';
-      tipoSelect.value  = '';
-      estadoGlobal.msgArea.innerHTML = '';
-      clearGrupos();
-    }
-  });
-  
+   // ═══════════════════════════════════════════════════════════════════
+   // FUNCIONES DE NAVEGACIÓN ENTRE PANTALLAS
+   // ═══════════════════════════════════════════════════════════════════
+
+   function mostrarPantalla(nombrePantalla) {
+     document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+     var pantalla = document.getElementById('screen' + nombrePantalla);
+     if (pantalla) pantalla.classList.add('active');
+   }
+
+   function irACargar() { mostrarPantalla('Cargar'); }
+   function irAConsultarLogin() { mostrarPantalla('ConsultarLogin'); }
+   function irAPanelAdmin() { mostrarPantalla('PanelAdmin'); document.getElementById('adminPassword').focus(); }
+   function volverAlMenu() { mostrarPantalla('Menu'); }
+
+   // ═══════════════════════════════════════════════════════════════════
+   // PANEL CARGAR REPORTES
+   // ═══════════════════════════════════════════════════════════════════
+
+   document.addEventListener('DOMContentLoaded', function() {
+     var matriculaInput = document.getElementById('matricula');
+     var tipoGrupoSelect = document.getElementById('tipoGrupo');
+     var profesorInput = document.getElementById('profesor');
+     var gruposContainer = document.getElementById('gruposContainer');
+     var addGrupoBtn = document.getElementById('addGrupo');
+     var importarBtn = document.getElementById('importar');
+     var nuevoPanel = document.getElementById('nuevoPanel');
+     var msgArea = document.getElementById('msgArea');
+
+     var gruposActuales = [];
+
+     matriculaInput.addEventListener('blur', function() {
+       var matricula = this.value.trim();
+       if (!matricula) return;
+
+       google.script.run.withSuccessHandler(function(res) {
+         if (res.ok) {
+           profesorInput.value = res.nombre;
+           if (res.carga && res.carga.length > 0) {
+             tipoGrupoSelect.value = res.tipoPredominante;
+             actualizarGrupos();
+           }
+         } else {
+           msgArea.innerHTML = '<div class="msg-error">❌ ' + res.error + '</div>';
+         }
+       }).obtenerCargaPorMatricula(matricula);
+     });
+
+     tipoGrupoSelect.addEventListener('change', actualizarGrupos);
+
+     function actualizarGrupos() {
+       var tipo = tipoGrupoSelect.value;
+       if (!tipo) return;
+
+       google.script.run.withSuccessHandler(function(grupos) {
+         gruposActuales = grupos || [];
+         renderizarGrupos();
+       }).obtenerGrupos(tipo);
+     }
+
+     function renderizarGrupos() {
+       gruposContainer.innerHTML = '';
+       var tipo = tipoGrupoSelect.value;
+
+       if (gruposActuales.length === 0) {
+         gruposContainer.innerHTML = '<p class="empty-hint">No hay grupos para este tipo.</p>';
+         return;
+       }
+
+       google.script.run.withSuccessHandler(function(asignaturas) {
+         asignaturas = asignaturas || [];
+         gruposActuales.forEach(function(grupo, idx) {
+           var div = document.createElement('div');
+           div.className = 'grupo-line';
+
+           var selectGrupo = document.createElement('select');
+           selectGrupo.className = 'grupo';
+           selectGrupo.innerHTML = '<option value="' + grupo + '">' + grupo + '</option>';
+
+           var selectAsignatura = document.createElement('select');
+           selectAsignatura.className = 'asignatura';
+           selectAsignatura.innerHTML = '<option value="">Elegir materia...</option>';
+           asignaturas.forEach(function(mat) {
+             selectAsignatura.innerHTML += '<option value="' + mat + '">' + mat + '</option>';
+           });
+
+           var inputLink = document.createElement('input');
+           inputLink.type = 'text';
+           inputLink.className = 'link';
+           inputLink.placeholder = 'Pega el link de Google Sheets';
+
+           var btnRemove = document.createElement('button');
+           btnRemove.className = 'remove-btn';
+           btnRemove.innerHTML = '✕';
+           btnRemove.onclick = function() { div.remove(); };
+
+           div.appendChild(selectGrupo);
+           div.appendChild(selectAsignatura);
+           div.appendChild(inputLink);
+           div.appendChild(btnRemove);
+           gruposContainer.appendChild(div);
+         });
+       }).obtenerAsignaturas(tipo);
+     }
+
+     addGrupoBtn.addEventListener('click', function() {
+       var tipo = tipoGrupoSelect.value;
+       if (!tipo) {
+         msgArea.innerHTML = '<div class="msg-error">Elige un tipo primero</div>';
+         return;
+       }
+       gruposActuales.push('Nuevo');
+       renderizarGrupos();
+     });
+
+     importarBtn.addEventListener('click', function() {
+       var matricula = matriculaInput.value.trim();
+       var profesor = profesorInput.value.trim();
+       var tipoGrupo = tipoGrupoSelect.value;
+
+       if (!matricula || !profesor || !tipoGrupo) {
+         msgArea.innerHTML = '<div class="msg-error">⚠️ Completa matrícula, profesor y tipo</div>';
+         return;
+       }
+
+       var gruposLinks = [];
+       document.querySelectorAll('.grupo-line').forEach(function(line) {
+         var grupo = line.querySelector('.grupo').value;
+         var asignatura = line.querySelector('.asignatura').value;
+         var link = line.querySelector('.link').value;
+         if (grupo && asignatura && link) {
+           gruposLinks.push({ grupo: grupo, asignatura: asignatura, link: link });
+         }
+       });
+
+       if (gruposLinks.length === 0) {
+         msgArea.innerHTML = '<div class="msg-error">⚠️ Agrega al menos un grupo con materia y link</div>';
+         return;
+       }
+
+       importarBtn.disabled = true;
+       msgArea.innerHTML = '<div class="msg-success">⏳ Importando...</div>';
+
+       google.script.run.withSuccessHandler(function(res) {
+         importarBtn.disabled = false;
+         msgArea.innerHTML = '<div class="msg-success">' + res.mensajeFinal + '</div>';
+         if (res.resumen) msgArea.innerHTML += '<div style="margin-top:10px; font-size:0.8rem;">' + res.resumen.replace(/\n/g, '<br>') + '</div>';
+       }).importarGruposWeb({
+         profesor: profesor,
+         tipoGrupo: tipoGrupo,
+         gruposLinks: gruposLinks
+       });
+     });
+
+     nuevoPanel.addEventListener('click', function() {
+       matriculaInput.value = '';
+       profesorInput.value = '';
+       tipoGrupoSelect.value = '';
+       gruposContainer.innerHTML = '<p class="empty-hint">Ingresa tu matrícula para cargar los grupos asignados.</p>';
+       msgArea.innerHTML = '';
+     });
+   });
+
+   // ═══════════════════════════════════════════════════════════════════
+   // CONSULTA REPORTE
+   // ═══════════════════════════════════════════════════════════════════
+
+   function validarLoginProfe() {
+     var matricula = document.getElementById('loginMatricula').value.trim();
+     var correo = document.getElementById('loginCorreo').value.trim();
+     var msgDiv = document.getElementById('loginMsg');
+
+     if (!matricula || !correo) {
+       msgDiv.innerHTML = '<div class="msg-error">⚠️ Completa matrícula y correo</div>';
+       return;
+     }
+
+     msgDiv.innerHTML = '<div class="msg-success">⏳ Validando...</div>';
+
+     google.script.run.withSuccessHandler(function(res) {
+       if (res.ok) {
+         mostrarPantalla('Reporte');
+         document.getElementById('reporteProfesor').innerHTML = 'Reporte - Prof. ' + res.nombre;
+         cargarReporteProfesor(res.matricula);
+         msgDiv.innerHTML = '';
+       } else {
+         msgDiv.innerHTML = '<div class="msg-error">❌ ' + res.error + '</div>';
+       }
+     }).validarLoginProfesor(matricula, correo);
+   }
+
+   function cargarReporteProfesor(matricula) {
+     google.script.run.withSuccessHandler(function(res) {
+       if (res.ok) {
+         var alumnosHTML = '';
+         res.alumnos.forEach(function(alumno) {
+           var estadoClass = '';
+           if (alumno.estado.texto === 'Crítico') estadoClass = 'critico';
+           else if (alumno.estado.texto === 'En Riesgo') estadoClass = 'riesgo';
+           else if (alumno.estado.texto === 'Satisfactorio') estadoClass = 'satisfactorio';
+           else estadoClass = 'excelente';
+
+           alumnosHTML += 
+             '<div class="alumno-card ' + estadoClass + '">' +
+             '  <div class="alumno-nombre">' + alumno.estado.emoji + ' ' + alumno.nombre + '</div>' +
+             '  <div class="alumno-info"><strong>Correo:</strong> ' + alumno.correo + '</div>' +
+             '  <div class="alumno-info"><strong>Grupo:</strong> ' + alumno.grupo + '</div>' +
+             '  <div class="alumno-estado" style="background:' + alumno.estado.color + '; color:white;">' + alumno.estado.texto + ' - Promedio: ' + alumno.promedio + '</div>' +
+             '</div>';
+         });
+         document.getElementById('listadoAlumnos').innerHTML = alumnosHTML || '<p class="empty-hint">Sin alumnos</p>';
+
+         var gruposHTML = '';
+         res.gruposResumen.forEach(function(grupo) {
+           gruposHTML += 
+             '<div class="grupo-item">' +
+             '  <div class="grupo-item-title">' + grupo.grupo + '</div>' +
+             '  <div class="grupo-item-mats">' + grupo.materias.join(', ') + '</div>' +
+             '</div>';
+         });
+         document.getElementById('listadoGrupos').innerHTML = gruposHTML || '<p class="empty-hint">Sin grupos</p>';
+       }
+     }).obtenerReporteProfesor(matricula);
+   }
+
    // ═══════════════════════════════════════════════════════════════════
    // PANEL ADMINISTRATIVO
    // ═══════════════════════════════════════════════════════════════════
-
-   function irAPanelAdmin() {
-     mostrarPantalla('PanelAdmin');
-     document.getElementById('adminPassword').focus();
-   }
 
    function validarAdminPassword() {
      var password = document.getElementById('adminPassword').value.trim();
@@ -1567,7 +1332,7 @@
              bitacoraHTML += 
                '<div class="admin-row">' +
                '  <div class="admin-label">' + item.profesor + '</div>' +
-               '  <div class="admin-value">' + item.filas + ' registros - ' + item.segundos + 's</div>' +
+               '  <div class="admin-value">' + item.filas + ' reg - ' + item.segundos + 's</div>' +
                '</div>';
            });
          } else {
@@ -1600,6 +1365,7 @@
      document.getElementById('adminDashboardDiv').style.display = 'none';
      volverAlMenu();
    }
+
 </script>
 
 </body>
