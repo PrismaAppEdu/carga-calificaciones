@@ -95,7 +95,7 @@ function sincronizarCalificacionesCompleta(datosImportacion) {
     if (filasParaAgregar.length > 0) {
       _guardarCalificacionesRTDB(filasParaAgregar, matricula, profesor);
       _registrarBitacoraRTDB(profesor, matricula, gruposLog, asignaturasLog, filasParaAgregar.length);
-      _actualizar DashboardRTDB(profesor, matricula, gruposLog);
+      _actualizarDashboardRTDB(profesor, matricula, gruposLog);
     }
     
     // 4. TAMBIÉN GUARDAR EN SHEETS (para compatibilidad)
