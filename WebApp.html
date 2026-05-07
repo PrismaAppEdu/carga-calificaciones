@@ -608,7 +608,7 @@ document.getElementById('importar').addEventListener('click', async function() {
           }
         })
         .withFailureHandler(reject)
-        .importarGruposWebOptimizado(datosImportacion);
+        .sincronizarCalificacionesCompleta(datosImportacion);
     });
     
     // Si llegó aquí, la importación fue exitosa
